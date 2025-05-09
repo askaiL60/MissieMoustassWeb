@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Message Vocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    #wrapper {
+      transition: all 0.3s ease-in-out;
+    }
+    #wrapper.toggled #sidebar-wrapper {
+      margin-left: -250px;
+    }
+  </style>
+</head>
+<body>
+  <div class="d-flex" id="wrapper">
+    <!-- Sidebar -->
+    <div class="border-end bg-white" id="sidebar-wrapper" style="width: 250px;">
+      <div class="sidebar-heading border-bottom bg-light">Message Vocal</div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="audioMessages.html">Écouter messages vocaux</a>
+      </div>
+    </div>
+
+    <!-- Page content -->
+    <div id="page-content-wrapper">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+        <div class="container-fluid d-flex">
+          <button class="btn btn-primary" id="sidebarToggle">Toggle Menu</button>
+          <button class="btn btn-danger ms-auto" onclick="logout()">Déconnexion</button>
+        </div>
+      </nav>
+
+      <div class="container-fluid mt-4">
+        <h2>Enregistrement vocal</h2>
+
+        <div class="mb-3">
+          <button id="startBtn" class="btn btn-primary">🎙️ Enregistrer</button>
+          <button id="stopBtn" class="btn btn-secondary" disabled>⏹️ Arrêter</button>
+          <span id="timer" class="ms-3 fw-bold">00:00</span>
+        </div>
+
+        <audio id="audioPlayback" controls style="display: none;" class="mb-3"></audio>
+
+        <div>
+          <button id="sendBtn" class="btn btn-success" disabled>📤 Envoyer</button>
+        </div>
+
+        <p id="statusMsg" class="mt-3"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap core JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    function logout() {
+      alert("Déconnexion réussie !");
+      window.location.href = "connexion.html";
+    }
+
+    document.getElementById("sidebarToggle").addEventListener("click", function () {
+      document.getElementById("wrapper").classList.toggle("toggled");
+    });
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let timerInterval;
+    let seconds = 0;
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const sendBtn = document.getElementById("sendBtn");
+    const audioPlayback = document.getElementById("audioPlayback");
+    const statusMsg = document.getElementById("statusMsg");
+    const timerDisplay = document.getElementById("timer");
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, "0");
+      const s = (sec % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function startTimer() {
+      seconds = 0;
+      timerDisplay.textContent = "00:00";
+      timerInterval = setInterval(() => {
+        seconds++;
+        timerDisplay.textContent = formatTime(seconds);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    startBtn.addEventListener("click", async () => {
+      audioChunks = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        const audioURL = URL.createObjectURL(audioBlob);
+        audioPlayback.src = audioURL;
+        audioPlayback.style.display = "block";
+        sendBtn.disabled = false;
+
+        sendBtn.onclick = async () => {
+          const formData = new FormData();
+          formData.append("audio", audioBlob, "audio-message.webm");
+
+          try {
+            const response = await fetch("http://localhost:3000/api/audio/upload", {
+              method: "POST",
+              body: formData
+            });
+
+            if (response.ok) {
+              statusMsg.style.color = "green";
+              statusMsg.textContent = "Message vocal envoyé et chiffré avec succès.";
+            } else {
+              throw new Error("Erreur lors de l'envoi");
+            }
+          } catch (error) {
+            statusMsg.style.color = "red";
+            statusMsg.textContent = "Échec de l'envoi du message.";
+          }
+        };
+      };
+
+      mediaRecorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      statusMsg.textContent = "Enregistrement en cours...";
+      startTimer();
+    });
+
+    stopBtn.addEventListener("click", () => {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      stopTimer();
+      statusMsg.textContent = "Enregistrement terminé.";
+    });
+  </script>
+</body>
+</html>
