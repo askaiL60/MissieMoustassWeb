@@ -10,13 +10,13 @@ on:
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Passage à Ubuntu pour éviter des problèmes sous macOS
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Analyse complète du code source
+          fetch-depth: 0  # Désactive les clones superficiels pour une meilleure analyse
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
