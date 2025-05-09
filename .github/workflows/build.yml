@@ -1,19 +1,43 @@
 name: Build
+
 on:
   push:
     branches:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
   sonarqube:
-    name: SonarQube
-    runs-on: macos-latest
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest  # Passage à Ubuntu pour éviter des problèmes sous macOS
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+          fetch-depth: 0  # Désactive les clones superficiels pour une meilleure analyse
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-scan-action@v1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=ben-sliman
+            -Dsonar.projectKey=ben-sliman_moustasweb
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.sources=backend,frontend
+            -Dsonar.exclusions=node_modules/**,dist/**,build/**,backend/test/**,frontend/test/**
+            -Dsonar.tests=backend/test,frontend/test
+            -Dsonar.test.inclusions=backend/test/**/*.test.js,frontend/test/**/*.test.js
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.sourceEncoding=UTF-8
