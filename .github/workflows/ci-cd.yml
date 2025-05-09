@@ -10,7 +10,7 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  build-and-run:
     runs-on: ubuntu-latest
     services:
       mongodb:
@@ -27,3 +27,56 @@ jobs:
         with:
           node-version: 18
 
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Start backend
+        working-directory: backend
+        run: npm start
+
+  docker-build:
+    needs: build-and-run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build backend Docker image
+        working-directory: backend
+        run: docker build -t my-app-backend .
+
+      - name: Build frontend Docker image
+        working-directory: frontend
+        run: docker build -t my-app-frontend .
+
+      - name: Push Docker images to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker tag my-app-backend my-docker-user/my-app-backend:latest
+          docker tag my-app-frontend my-docker-user/my-app-frontend:latest
+          docker push my-docker-user/my-app-backend:latest
+          docker push my-docker-user/my-app-frontend:latest
+
+  deploy:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull my-docker-user/my-app-backend:latest
+            docker pull my-docker-user/my-app-frontend:latest
+            docker stop my-app-backend || true
+            docker stop my-app-frontend || true
+            docker rm my-app-backend || true
+            docker rm my-app-frontend || true
+            docker run -d -p 3000:3000 --name my-app-backend my-docker-user/my-app-backend:latest
+            docker run -d -p 80:80 --name my-app-frontend my-docker-user/my-app-frontend:latest
