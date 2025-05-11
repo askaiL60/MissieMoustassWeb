@@ -70,19 +70,14 @@
   </div>
 
   <script>
-    function logout() {
-      alert("Déconnexion réussie !");
-      window.location.href = "connexion.html";
-    }
-
-    document.getElementById("sidebarToggle").addEventListener("click", function () {
-      document.getElementById("wrapper").classList.toggle("toggled");
-    });
-
     async function fetchUsers() {
-      const response = await fetch("http://localhost:3000/api/users");
-      const users = await response.json();
-      displayUsers(users);
+      try {
+        const response = await fetch("http://localhost:3000/api/users");
+        const users = await response.json();
+        displayUsers(users);
+      } catch (error) {
+        console.error("Erreur lors du chargement des utilisateurs :", error);
+      }
     }
 
     function displayUsers(users = []) {
@@ -121,6 +116,24 @@
       });
     }
 
+    function editUser(userId, email) {
+      document.getElementById("userId").value = userId;
+      document.getElementById("userEmail").value = email;
+      document.getElementById("submitButton").textContent = "Modifier";
+    }
+
+    async function confirmDelete(userId) {
+      if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) return;
+
+      try {
+        await fetch(`http://localhost:3000/api/users/${userId}`, { method: "DELETE" });
+        alert("Utilisateur supprimé !");
+        fetchUsers();
+      } catch (error) {
+        console.error("Erreur lors de la suppression :", error);
+      }
+    }
+
     async function saveUser() {
       const email = document.getElementById("userEmail").value.trim();
       const password = document.getElementById("userPassword").value.trim();
@@ -141,15 +154,30 @@
       const url = userId ? `http://localhost:3000/api/users/${userId}` : "http://localhost:3000/api/users";
       const body = { email, password };
 
-      await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
 
-      alert(userId ? "Utilisateur modifié avec succès !" : "Utilisateur ajouté avec succès !");
-      resetForm();
-      fetchUsers();
+        if (!response.ok) {
+          throw new Error("Erreur lors de l'enregistrement de l'utilisateur");
+        }
+
+        alert(userId ? "Utilisateur modifié avec succès !" : "Utilisateur ajouté avec succès !");
+        resetForm();
+        fetchUsers();
+      } catch (error) {
+        console.error("Erreur lors de l'ajout/modification :", error);
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("userId").value = "";
+      document.getElementById("userEmail").value = "";
+      document.getElementById("userPassword").value = "";
+      document.getElementById("submitButton").textContent = "Ajouter";
     }
 
     document.addEventListener("DOMContentLoaded", fetchUsers);
