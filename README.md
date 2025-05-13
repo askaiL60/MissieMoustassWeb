@@ -26,4 +26,4 @@ Ce projet consiste à refondre une application Java en une architecture web mode
 
 ### Lancement local 
 '''bash
-- docker-compose up --build
+- docker-compose down && docker-compose up -d --build 
