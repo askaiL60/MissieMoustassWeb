@@ -22,7 +22,7 @@ Ce projet consiste à refondre une application Java en une architecture web mode
 ### Prérequis
 - Node.js & npm
 - Docker & Docker Compose
-- MySQL (local ou conteneurisé)
+- MongoDB (local ou conteneurisé)
 
 ### Lancement local 
 '''bash
