@@ -39,7 +39,7 @@ app.use(cors());
 app.use(express.json());
 
 // 📌 Connexion MongoDB via Docker
-mongoose.connect(process.env.MONGO_URI || 'mongodb://root:root@mongodb:27017/moustasweb?authSource=admin', {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => console.log('✅ MongoDB connecté via Docker'))
