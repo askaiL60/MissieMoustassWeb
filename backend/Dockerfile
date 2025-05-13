@@ -11,9 +11,6 @@ RUN npm install
 # Copier tout le backend dans le conteneur
 COPY . .
 
-# Définir la connexion MongoDB
-ENV MONGO_URI="mongodb://root:root@mongodb:27017/moustasweb?authSource=admin"
-
 # Exposer le port utilisé par l'API
 EXPOSE 3000
 
